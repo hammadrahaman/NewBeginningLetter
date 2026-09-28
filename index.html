@@ -485,14 +485,9 @@
     .heart-stage .ring:nth-child(3) { animation-delay: 1.73s; }
     .big-heart { position: relative; width: 70px; height: 70px; }
     .big-heart path { fill: var(--wine); }
-    #result[data-mood="time"] .ring { animation-duration: 4.5s; }
-    #result[data-mood="time"] .ring:nth-child(2) { animation-delay: 1.5s; }
-    #result[data-mood="time"] .ring:nth-child(3) { animation-delay: 3s; }
-    #result[data-mood="time"] .big-heart path { fill: var(--rose); }
     #result[data-mood="no"] .ring { display: none; }
     #result[data-mood="no"] .big-heart path { fill: var(--gold); }
     #result.show[data-mood="yes"] .big-heart { animation: pop 0.9s cubic-bezier(.2, 1.6, .4, 1) both, beat 1.3s ease-in-out 0.9s infinite; }
-    #result.show[data-mood="time"] .big-heart { animation: rise 1.4s ease both, beat 3.6s ease-in-out 1.4s infinite; }
     #result.show[data-mood="no"] .big-heart { animation: rise 1.6s ease both, calm 5s ease-in-out 1.6s infinite; }
     #resultTitle { font-family: var(--display); font-weight: 500; font-size: clamp(2rem, 8.5vw, 2.8rem); line-height: 1.15; color: var(--ink); text-wrap: balance; }
     #resultTitle em { color: var(--wine); }
@@ -735,7 +730,6 @@
 
             <div class="options" role="radiogroup" aria-label="Your answer">
               <button class="option option-yes" role="radio" aria-checked="false" tabindex="0" data-kind="yes" data-answer="♡ Yes, I'd like to talk about us"><span class="dot"></span><span><span class="heart">♡</span> Yes, I'd like to talk about us</span></button>
-              <button class="option" role="radio" aria-checked="false" tabindex="-1" data-kind="time" data-answer="I'd like some time to think about it"><span class="dot"></span><span>I'd like some time to think about it</span></button>
               <button class="option" role="radio" aria-checked="false" tabindex="-1" data-kind="no" data-answer="I don't feel the same way"><span class="dot"></span><span>I don't feel the same way</span></button>
             </div>
 
@@ -919,11 +913,6 @@
       floatRate = 0.12;
       setTimeout(() => floatRate = 0, 6000);
     }
-    function gentleHearts() {
-      if (reduceMotion) return;
-      floatRate = 0.03;
-      setTimeout(() => floatRate = 0, 5000);
-    }
     if (!reduceMotion) {
       resize();
       const n = W < 600 ? 14 : 26;
@@ -1055,11 +1044,6 @@
         title: "You just made me <em>so happy</em>",
         text: "Thank you for being open to us, and for trusting me with your heart. I'd love to sit with you and talk, honestly and patiently, with no rush. InshaAllah, let's take this one conversation at a time.",
         animate: origin => celebrate(origin),
-      },
-      time: {
-        title: "Take all the <em>time</em> you need",
-        text: "There's no rush, and no pressure. This is a big step, and you deserve to feel sure. Whatever you decide, I'm grateful for you. I'll be right here.",
-        animate: () => gentleHearts(),
       },
       no: {
         title: "Thank you for being <em>honest</em>",
