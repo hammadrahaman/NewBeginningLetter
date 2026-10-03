@@ -1,0 +1,22 @@
+{
+  "name": "for-shavana",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "build": "rm -rf www && mkdir -p www && cp index.html www/index.html && cp node_modules/@capacitor/core/dist/capacitor.js www/capacitor.js",
+    "sync": "npm run build && npx cap sync",
+    "android": "npm run sync && npx cap open android",
+    "ios": "npm run sync && npx cap open ios",
+    "apk": "npm run sync && cd android && ./gradlew assembleRelease"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.5.2",
+    "@capacitor/core": "^8.5.2",
+    "@capacitor/geolocation": "^8.2.2",
+    "@capacitor/ios": "^8.5.2"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^8.5.2"
+  }
+}

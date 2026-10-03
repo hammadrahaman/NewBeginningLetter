@@ -1,0 +1,19 @@
+{
+  "appId": "com.hammad.forshavana",
+  "appName": "For Shavana",
+  "webDir": "www",
+  "backgroundColor": "#241619",
+  "android": {
+    "webContentsDebuggingEnabled": false
+  },
+  "ios": {
+    "contentInset": "never",
+    "backgroundColor": "#241619"
+  },
+  "plugins": {
+    "SystemBars": {
+      "insetsHandling": "css",
+      "initialViewportFitValueHint": "cover"
+    }
+  }
+}

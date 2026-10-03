@@ -12,8 +12,11 @@
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=Pinyon+Script&display=swap" rel="stylesheet" />
-  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+  <!-- Fonts and the email script load in the background so the first screen appears straight away -->
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=Pinyon+Script&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js" defer></script>
+  <!-- Capacitor runtime, copied in by `npm run build`; only present inside the app -->
+  <script src="capacitor.js"></script>
 
   <style>
     :root {
@@ -245,6 +248,38 @@
       color: #a8908f;
       opacity: 0; animation: rise 1.6s ease 1.5s forwards;
     }
+    .envelope[hidden], .intro-hint[hidden], .gate[hidden] { display: none; }
+
+    /* Location lock: shown until she's near one of the chosen places */
+    .gate {
+      display: flex; flex-direction: column; align-items: center; gap: 22px;
+      max-width: 320px;
+      opacity: 0; animation: rise 1.4s ease 0.8s forwards;
+    }
+    .gate-mark { width: 44px; height: 44px; color: #c0687b; }
+    .gate-mark svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 1.3; stroke-linecap: round; stroke-linejoin: round; }
+    .gate.checking .gate-mark svg { animation: breathe 1.6s ease-in-out infinite; }
+    .gate-text {
+      font-family: var(--display); font-style: italic;
+      font-size: clamp(1.15rem, 4.6vw, 1.35rem); line-height: 1.45;
+      color: #cdb8b4;
+      min-height: 2.9em;
+    }
+    .gate-btn {
+      min-height: 50px; padding: 0 28px;
+      border-radius: 999px; border: 1px solid rgba(233, 214, 210, 0.35);
+      background: rgba(233, 214, 210, 0.06); color: #f1e2de;
+      font-family: var(--display); font-weight: 600; font-size: 1.05rem; letter-spacing: 0.06em;
+      cursor: pointer; touch-action: manipulation;
+      transition: background 0.3s ease, opacity 0.3s ease, transform 0.2s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .gate-btn:active { transform: scale(0.97); }
+    .gate-btn:disabled { opacity: 0.45; cursor: default; }
+    .gate-btn:focus-visible { outline: 2px solid #b08a4a; outline-offset: 3px; }
+
+    /* The letter can't be selected, copied or long-pressed */
+    main, #intro { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 
     /* ---------- The letter ---------- */
     main { position: relative; z-index: 1; padding: 0 0 calc(80px + var(--safe-b)); }
@@ -534,18 +569,23 @@
   <div id="intro">
     <div class="intro-inner">
       <p class="intro-kicker">A little something I wanted to tell you</p>
-      <button class="envelope" id="openBtn" aria-label="Open the letter">
+      <div class="gate" id="gate" role="status" aria-live="polite">
+        <div class="gate-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 21.5s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><path d="M12 12.6s-2.4-1.5-2.4-3.1c0-.9.7-1.6 1.5-1.6.4 0 .7.2.9.5.2-.3.5-.5.9-.5.8 0 1.5.7 1.5 1.6 0 1.6-2.4 3.1-2.4 3.1z"/></svg></div>
+        <p class="gate-text" id="gateText">This letter only opens in places that mean something to us.</p>
+        <button class="gate-btn" id="gateBtn">Check my location</button>
+      </div>
+      <button class="envelope" id="openBtn" aria-label="Open the letter" hidden>
         <span class="env-back"></span>
         <span class="env-letter" aria-hidden="true"><span class="hand"><span data-her></span>,</span><i></i><i></i><i></i></span>
         <span class="env-front"><span class="env-to">for <span data-her></span></span></span>
         <span class="env-flap"></span>
         <span class="seal"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#f0c9cf" d="M12 21s-7.5-4.6-10-9.3C.3 8.4 2.2 4.5 6 4.5c2.2 0 3.6 1.2 4.5 2.4.3.4.9.4 1.2 0 .9-1.2 2.3-2.4 4.5-2.4 3.8 0 5.7 3.9 4 7.2C19.5 16.4 12 21 12 21z"/></svg></span>
       </button>
-      <p class="intro-hint">Tap to open</p>
+      <p class="intro-hint" id="introHint" hidden>Tap to open</p>
     </div>
   </div>
 
-  <main>
+  <main hidden>
     <!-- ================= PAGE 1 ================= -->
     <article class="sheet" id="page1">
       <header class="page-head">
@@ -769,6 +809,15 @@
       EMAILJS_PUBLIC_KEY: "uKTfzsulHWa-BMOxO",
       EMAILJS_SERVICE_ID: "service_tk9786b",
       EMAILJS_TEMPLATE_ID: "template_azanewa",
+      // The letter only opens near one of these places: within that place's own
+      // radius (in metres), or RADIUS_METERS when a place doesn't set one
+      PLACES: [
+        { name: "TCS",    lat: 12.84734741678401,  lng: 77.67879127195641 },
+        { name: "Home",   lat: 13.01020656839794,  lng: 78.33185201592715, radius: 20000 },
+        { name: "PG",     lat: 12.84810084665997,  lng: 77.67208378672557 },
+        { name: "Hammad", lat: 13.027308551149252, lng: 77.6013786901715 },
+      ],
+      RADIUS_METERS: 5000,
     };
     /* ========================================================= */
 
@@ -953,8 +1002,63 @@
     scrollCue.addEventListener("click", () => window.scrollBy({ top: window.innerHeight * 0.75, behavior: reduceMotion ? "auto" : "smooth" }));
     window.addEventListener("resize", onScroll);
 
-    /* ---------- Intro: open the envelope ---------- */
     const envelope = $("openBtn");
+
+    /* ---------- Location lock ---------- */
+    // Runs only inside the app. Her position is compared on the phone and never sent or stored.
+    const Cap = window.Capacitor;
+    const inApp = !!(Cap && Cap.isNativePlatform && Cap.isNativePlatform());
+    const Geo = inApp ? Cap.registerPlugin("Geolocation") : null;
+    const gate = $("gate"), gateText = $("gateText"), gateBtn = $("gateBtn");
+
+    function metersBetween(a, b) {
+      const R = 6371000, rad = d => d * Math.PI / 180;
+      const dLat = rad(b.lat - a.lat), dLng = rad(b.lng - a.lng);
+      const h = Math.sin(dLat / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLng / 2) ** 2;
+      return 2 * R * Math.asin(Math.sqrt(h));
+    }
+    function setGate(text, button, checking = false) {
+      gateText.textContent = text;
+      gate.classList.toggle("checking", checking);
+      gateBtn.hidden = !button;
+      if (button) gateBtn.textContent = button;
+      gateBtn.disabled = checking;
+    }
+    function unlock() {
+      gate.hidden = true;
+      document.querySelector("main").hidden = false;
+      envelope.hidden = false;
+      $("introHint").hidden = false;
+      buzz(12);
+    }
+    async function checkLocation() {
+      if (!Geo) return setGate("This letter can only be opened in its app.", null);
+      setGate("Finding where you are…", "Check my location", true);
+      try {
+        let perm = await Geo.checkPermissions();
+        if (perm.location !== "granted") perm = await Geo.requestPermissions({ permissions: ["location", "coarseLocation"] });
+        if (perm.location !== "granted" && perm.coarseLocation !== "granted") {
+          return setGate("Please allow location to open your letter.", "Try again");
+        }
+        const pos = await Geo.getCurrentPosition({ enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 });
+        const here = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        const near = CONFIG.PLACES.some(p => metersBetween(here, p) <= (p.radius || CONFIG.RADIUS_METERS));
+        if (near) unlock();
+        else setGate("This letter opens only in our places.", "Try again");
+      } catch (err) {
+        console.error(err);
+        setGate("Please turn on location to open your letter.", "Try again");
+      }
+    }
+    gateBtn.addEventListener("click", checkLocation);
+    // If she already allowed location before, check straight away instead of waiting for a tap
+    if (Geo) {
+      Geo.checkPermissions().then(p => { if (p.location === "granted") checkLocation(); }).catch(() => {});
+    } else {
+      setGate("This letter can only be opened in its app.", null);
+    }
+
+    /* ---------- Intro: open the envelope ---------- */
     envelope.addEventListener("click", () => {
       if (envelope.classList.contains("open")) return;
       envelope.classList.add("open");
@@ -967,6 +1071,8 @@
         onScroll();
       }, reduceMotion ? 0 : 2000);
     });
+
+    ["contextmenu", "copy", "cut", "dragstart"].forEach(type => document.addEventListener(type, e => e.preventDefault()));
 
     /* ---------- Reveal on scroll ---------- */
     // Every block in the letter fades in as it's reached
@@ -1135,6 +1241,8 @@
           // Both names are sent so the EmailJS template can use either
           choice: answer, answer,
           name: CONFIG.HER_NAME, her_name: CONFIG.HER_NAME,
+          // Her Android or Hammad's iPhone, so each email says whose phone it came from
+          answered_by: inApp && Cap.getPlatform() === "ios" ? CONFIG.MY_NAME : CONFIG.HER_NAME,
           message: "(no message)",
           time: new Date().toLocaleString("en-GB", { dateStyle: "full", timeStyle: "short" }),
         });
